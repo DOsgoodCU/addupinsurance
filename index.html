@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agri-Strategy Dashboard</title>
+    <title>Does Insurance Package Add Up or Make Things Worse?</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
@@ -239,21 +239,21 @@
         function agriApp() {
             return {
                 ui: {
-                    mainTitle: "Agricultural Strategy Dashboard",
-                    subTitle: "Passively Hosted Analysis Tool",
-                    baseLabel: "Total crop value per hectare (Good/Local):",
-                    dashEvTitle: "Modern EV > Traditional?",
-                    dashSurviveTitle: "Bad Year Survival (Modern)?",
-                    gameBtnText: "Launch Gum Game It!",
-                    bmTitle1: "Traditional Seeds",
+                    mainTitle: "Does Insurance Package Add Up? Or Make Things Worse?",
+                    subTitle: "Example: Can adoption of improved seeds de-risked by insurance make farmers better off?",
+                    baseLabel: "Total crop value per hectare for a good year with original seeds:",
+                    dashEvTitle: "Is the Farmer making any more money with the Package?",
+                    dashSurviveTitle: "Does the farmer break even in a bad year?",
+                    gameBtnText: "Simulate!",
+                    bmTitle1: "Original Seeds",
                     bmTitle2: "Improved Seeds",
-                    bmTitle3: "Traditional Seeds with Insurance",
+                    bmTitle3: "Original Seeds with Insurance",
                     bmTitle4: "Improved Seeds with Insurance"
                 },
                 gameTitles: [
-                    "Round 1: Choice of Normal or High Quality Seeds",
-                    "Round 2: The Choice of Opting for Insurance",
-                    "Round 3: When Insurance Misses a Bad Year (Basis Risk)"
+                    "Seeds Only 1: Choice of Normal or Improved Seeds",
+                    "Insurance 2: Insurance Choice",
+                    "Imperfect Insurance: When Insurance Misses some Bad Years (Basis Risk)"
                 ],
                 base: 100, probBad: 0.2, probBasis: 0.33,
                 gameOpen: false, gameTab: 1, simulationCol: 'none',
@@ -284,7 +284,7 @@
                 summaryData() {
                     const v = this.p; const prem = this.premium;
                     return [
-                        { name: "Traditional, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
+                        { name: "Original, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
                         { name: "Improved Seeds, No Insurance", ev: (1-this.probBad)*(v.yieldBen - v.seedCost + v.savings) + this.probBad*(v.savings - v.seedCost), good: v.yieldBen - v.seedCost + v.savings, bad: v.savings - v.seedCost },
                         { name: "Improved Seeds, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - prem + v.savings, bad: this.survivalNet }
                     ];
