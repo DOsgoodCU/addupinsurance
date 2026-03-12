@@ -9,88 +9,227 @@
     <style>
         .neg-num { color: #dc2626; font-weight: bold; }
         [x-cloak] { display: none !important; }
+        .table-compact td, .table-compact th { padding: 0.4rem; border-bottom: 1px solid #e2e8f0; }
+        .active-cell { background-color: #fef08a; font-weight: bold; border: 2px solid #eab308 !important; }
     </style>
 </head>
 <body class="bg-slate-100 p-4" x-data="agriApp()" x-cloak>
+
     <div class="max-w-6xl mx-auto space-y-6">
         <header class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
-            <h1 class="text-3xl font-bold">Agricultural Strategy Dashboard</h1>
-            <p class="text-blue-200">Passively Hosted Portfolio Version</p>
+            <h1 class="text-3xl font-bold" x-text="ui.mainTitle"></h1>
+            <p class="text-blue-200" x-text="ui.subTitle"></p>
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div :class="evModern > evTrad ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
-                <h3 class="text-sm uppercase font-semibold opacity-80">Modern EV > Traditional?</h3>
+                <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashEvTitle"></h3>
                 <div class="text-3xl font-bold" x-text="evModern > evTrad ? 'YES' : 'NO'"></div>
-                <p class="text-xs" x-text="'Modern: ' + evModern.toFixed(1) + ' vs Trad: ' + evTrad.toFixed(1)"></p>
+                <p class="text-xs" x-text="`Modern: ${evModern.toFixed(1)} vs Trad: ${evTrad.toFixed(1)}`"></p>
             </div>
             <div :class="survivalNet >= 0 ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
-                <h3 class="text-sm uppercase font-semibold opacity-80">Bad Year Survival?</h3>
+                <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashSurviveTitle"></h3>
                 <div class="text-3xl font-bold" x-text="survivalNet >= 0 ? 'YES' : 'NO'"></div>
-                <p class="text-xs" x-text="'Bad Year Net: ' + survivalNet.toFixed(1)"></p>
+                <p class="text-xs" x-text="`Bad Year Profit: ${survivalNet.toFixed(1)}`"></p>
             </div>
         </div>
 
         <div class="flex flex-col md:flex-row gap-6">
-            <aside class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md space-y-4">
+            <aside class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md h-fit space-y-6 border-t-4 border-blue-900">
                 <div>
-                    <label class="block font-bold text-sm mb-2">Total Crop Value</label>
-                    <input type="number" x-model.number="base" class="w-full p-2 border rounded">
+                    <label class="block font-bold text-sm mb-2" x-text="ui.baseLabel"></label>
+                    <input type="number" x-model.number="base" class="w-full p-2 border rounded-md bg-slate-50">
                 </div>
-                <template x-for="p in params" :key="p.key">
-                    <div>
-                        <div class="flex justify-between text-xs font-semibold">
-                            <span x-text="p.label"></span>
-                            <span class="text-blue-600 font-bold" x-text="'= ' + (p.val * base).toFixed(1)"></span>
+
+                <div class="space-y-4">
+                    <h4 class="font-bold border-b pb-1 text-blue-900 text-xs uppercase tracking-wider">Parameters</h4>
+                    <template x-for="p in params" :key="p.key">
+                        <div>
+                            <div class="flex justify-between text-[11px] font-semibold">
+                                <span x-text="p.label"></span>
+                                <span class="text-blue-700 font-bold" x-text="'= ' + (p.val * base).toFixed(1)"></span>
+                            </div>
+                            <input type="range" :min="p.min" :max="p.max" :step="p.step" x-model.number="p.val" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
                         </div>
-                        <input type="range" :min="p.min" :max="p.max" :step="p.step" x-model.number="p.val" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </template>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t">
+                    <h4 class="font-bold text-blue-900 text-xs uppercase tracking-wider">Probabilities</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] block font-medium">Bad Year (1 in <span x-text="(1/probBad).toFixed(1)"></span>)</label>
+                            <input type="range" min="0.05" max="1" step="0.01" x-model.number="probBad" class="w-full">
+                        </div>
+                        <div>
+                            <label class="text-[11px] block font-medium">Basis Risk (1 in <span x-text="(1/probBasis).toFixed(1)"></span>)</label>
+                            <input type="range" min="0" max="1" step="0.01" x-model.number="probBasis" class="w-full">
+                        </div>
                     </div>
-                </template>
-                <button @click="gameOpen = true" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow transition">
-                    Launch Gum Game It!
-                </button>
+                </div>
+
+                <button @click="openGameModal()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg transition" x-text="ui.gameBtnText"></button>
             </aside>
 
-            <main class="w-full md:w-2/3 space-y-6">
+            <main class="w-full md:w-2/3 space-y-8">
                 <section class="bg-white p-6 rounded-xl shadow-md">
-                    <h3 class="font-bold text-lg mb-4 border-b pb-2 text-blue-900 uppercase">Summary Table</h3>
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-50">
-                            <tr><th class="p-2">Strategy</th><th class="p-2">EV</th><th class="p-2">Good</th><th class="p-2">Bad</th></tr>
-                        </thead>
-                        <tbody>
-                            <template x-for="s in summaryData()" :key="s.name">
-                                <tr class="border-t">
-                                    <td class="p-2 font-medium" x-text="s.name"></td>
-                                    <td class="p-2 font-bold" x-text="s.ev.toFixed(1)"></td>
-                                    <td class="p-2" x-text="s.good.toFixed(1)"></td>
-                                    <td class="p-2" :class="s.bad < 0 ? 'neg-num' : ''" x-text="s.bad.toFixed(1)"></td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
+                    <h3 class="font-bold text-lg mb-4 border-b pb-2 text-blue-900 uppercase tracking-wide">I. Summary Table</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left table-compact">
+                            <thead class="bg-slate-50">
+                                <tr><th>Strategy</th><th>Expected Value</th><th>Good Year</th><th>Bad Year</th></tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="s in summaryData()" :key="s.name">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="font-medium" x-text="s.name"></td>
+                                        <td class="font-bold text-blue-800" x-text="s.ev.toFixed(1)"></td>
+                                        <td x-text="s.good.toFixed(1)"></td>
+                                        <td :class="s.bad < 0 ? 'neg-num' : ''" x-text="s.bad.toFixed(1)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="font-bold text-lg border-b pb-2 text-blue-900 uppercase tracking-wide">II. Strategy Business Models</h3>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <template x-for="bm in businessModels()" :key="bm.title">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <h4 class="bg-slate-800 text-white px-3 py-1 text-[11px] font-bold mb-3 rounded shadow-sm inline-block uppercase tracking-tighter" x-text="bm.title"></h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-[10px] text-left table-compact leading-tight">
+                                        <thead><tr class="text-slate-500 border-b"><th>Item</th><th>Good</th><th>Bad</th><th>Basis</th></tr></thead>
+                                        <tbody>
+                                            <template x-for="row in bm.rows" :key="row.item">
+                                                <tr :class="row.item === 'NET' ? 'font-bold bg-slate-50 border-t-2' : ''">
+                                                    <td x-text="row.item"></td>
+                                                    <td :class="row.good < 0 ? 'neg-num' : ''" x-text="row.good"></td>
+                                                    <td :class="row.bad < 0 ? 'neg-num' : ''" x-text="row.bad"></td>
+                                                    <td :class="row.basis < 0 ? 'neg-num' : ''" x-text="row.basis === null ? '-' : row.basis"></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </section>
             </main>
         </div>
     </div>
 
-    <div x-show="gameOpen" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl max-w-4xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
-            <button @click="gameOpen = false" class="absolute top-4 right-4 text-3xl font-bold">&times;</button>
-            <h2 class="text-2xl font-bold mb-4">Educational Game Simulator</h2>
-            <div class="flex flex-col md:flex-row gap-6">
-                <div class="w-full md:w-1/3 space-y-4">
-                    <select x-model="gameState.seeds" class="w-full p-2 border rounded"><option value="normal">Normal</option><option value="high">High Quality</option></select>
-                    <select x-model="gameState.ins" class="w-full p-2 border rounded"><option value="no">No Insurance</option><option value="yes">Yes</option></select>
-                    <button @click="playRound()" class="w-full bg-green-600 text-white font-bold py-2 rounded">Simulate Season</button>
-                </div>
-                <div class="w-full md:w-2/3 bg-slate-50 p-6 rounded border text-center">
-                    <div class="flex justify-center gap-4 mb-4">
-                       <div class="border p-2 bg-white rounded"><img :src="gameState.seeds === 'normal' ? 'images/nseed1.png' : 'images/hqseed1.png'" class="h-20 w-20 object-contain"></div>
-                       <div class="text-2xl pt-6">+</div>
-                       <div class="border p-2 bg-white rounded"><img :src="gameState.ins === 'yes' ? 'images/insurance1.png' : 'images/noinsurance.png'" class="h-20 w-20 object-contain"></div>
+    <div x-show="gameOpen" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 md:p-4">
+        <div class="bg-white rounded-xl w-full max-w-6xl h-[95vh] overflow-hidden flex flex-col shadow-2xl relative">
+            <button @click="gameOpen = false" class="absolute top-4 right-4 text-3xl font-bold z-10 hover:text-red-600">&times;</button>
+            
+            <div class="p-4 bg-slate-50 border-b flex justify-between items-center pr-12">
+                <h2 class="text-lg font-bold text-blue-900 uppercase tracking-tight">Game Simulator: Round <span x-text="gameTab"></span></h2>
+                <div class="text-[10px] font-mono bg-blue-100 text-blue-800 px-3 py-1 rounded-full uppercase">Current Savings: <span x-text="p.savings.toFixed(1)"></span></div>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden">
+                <div class="w-56 bg-slate-100 p-4 border-r space-y-4 flex flex-col">
+                    <div class="space-y-4 flex-1">
+                        <div>
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Select Seed Type:</label>
+                            <select x-model="game.seeds" class="w-full p-2 border rounded text-xs bg-white">
+                                <option value="normal">Normal Quality</option>
+                                <option value="high">High Quality</option>
+                            </select>
+                        </div>
+                        <div x-show="gameTab >= 2">
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Insurance Policy:</label>
+                            <select x-model="game.ins" class="w-full p-2 border rounded text-xs bg-white">
+                                <option value="no">No Insurance</option>
+                                <option value="yes">Active Insurance</option>
+                            </select>
+                        </div>
+                        <div class="pt-4 border-t">
+                            <button @click="playSeason()" class="w-full bg-blue-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-blue-700">SIMULATE SEASON</button>
+                        </div>
+                        <div class="pt-2" x-show="gameTab === 3">
+                            <button @click="playBasis()" class="w-full bg-red-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-red-700">CHECK BASIS RISK</button>
+                        </div>
                     </div>
-                    <div class="text-left font-mono text-sm border-t pt-4" x-html="gameResult"></div>
+                    <div class="text-[9px] text-slate-400 italic leading-tight">
+                        Note: Game logic uses parameters defined on the main dashboard.
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col bg-white overflow-y-auto">
+                    <div class="flex border-b sticky top-0 bg-white z-10">
+                        <template x-for="i in [1,2,3]" :key="i">
+                            <button @click="gameTab = i; resetRound();" :class="gameTab === i ? 'border-b-4 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-400'" class="flex-1 py-3 font-bold text-[10px] uppercase tracking-widest transition-all" x-text="'Round ' + i"></button>
+                        </template>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <div class="text-center">
+                            <h3 class="text-base font-bold text-slate-800 mb-4" x-text="gameTitles[gameTab-1]"></h3>
+                            
+                            <div class="flex justify-center items-center gap-2 md:gap-4 mb-6">
+                                <div class="flex flex-col items-center">
+                                    <img :src="game.seeds === 'normal' ? 'images/nseed1.png' : 'images/hqseed1.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
+                                    <span class="text-[8px] font-black mt-1 text-slate-400">SEED</span>
+                                </div>
+                                <template x-if="gameTab >= 2">
+                                    <div class="flex items-center gap-2 md:gap-4">
+                                        <div class="text-xl font-light text-slate-300">+</div>
+                                        <div class="flex flex-col items-center">
+                                            <img :src="game.ins === 'yes' ? 'images/insurance1.png' : 'images/noinsurance.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
+                                            <span class="text-[8px] font-black mt-1 text-slate-400">INSURANCE</span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div class="text-xl font-light text-slate-300">+</div>
+                                <div class="flex flex-col items-center">
+                                    <img :src="game.lastSeason === 'good' ? 'images/goodseason.png' : 'images/badseason.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
+                                    <span class="text-[8px] font-black mt-1 text-slate-400 uppercase" x-text="game.lastSeason"></span>
+                                </div>
+                                <template x-if="gameTab === 3">
+                                    <div class="flex items-center gap-2 md:gap-4">
+                                        <div class="text-xl font-light text-slate-300">+</div>
+                                        <div class="flex flex-col items-center">
+                                            <img :src="game.lastBasis ? 'images/risque.png' : 'images/nrisque.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
+                                            <span class="text-[8px] font-black mt-1 text-slate-400 uppercase">Basis</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <h4 class="text-[10px] font-bold text-blue-900 uppercase mb-2">Live Simulation Ledger</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-[11px] text-left table-compact bg-white rounded shadow-sm">
+                                    <thead class="bg-slate-800 text-white">
+                                        <tr>
+                                            <th>Accounting Item</th>
+                                            <th class="text-center" :class="simulationCol === 'good' ? 'bg-blue-600' : ''">Good Year</th>
+                                            <th class="text-center" :class="simulationCol === 'bad' ? 'bg-blue-600' : ''">Bad Year</th>
+                                            <th class="text-center" :class="simulationCol === 'basis' ? 'bg-blue-600' : ''">Basis Risk</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="row in getActiveGameModel().rows" :key="row.item">
+                                            <tr :class="row.item === 'NET' ? 'font-bold border-t-2 bg-slate-50' : ''">
+                                                <td class="font-medium" x-text="row.item"></td>
+                                                <td class="text-center" :class="simulationCol === 'good' ? 'active-cell' : ''" x-text="row.good"></td>
+                                                <td class="text-center" :class="simulationCol === 'bad' ? 'active-cell' : ''" x-text="row.bad"></td>
+                                                <td class="text-center" :class="simulationCol === 'basis' ? 'active-cell' : ''" x-text="row.basis === null ? '-' : row.basis"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="text-[9px] text-slate-500 mt-2 italic text-center">Highlighted column represents the current simulation state.</p>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,15 +238,34 @@
     <script>
         function agriApp() {
             return {
-                base: 100, probBad: 0.2, probBasis: 0.33, gameOpen: false,
-                gameState: { seeds: 'normal', ins: 'no' }, gameResult: 'Waiting for simulation...',
+                ui: {
+                    mainTitle: "Agricultural Strategy Dashboard",
+                    subTitle: "Passively Hosted Analysis Tool",
+                    baseLabel: "Total crop value per hectare (Good/Local):",
+                    dashEvTitle: "Modern EV > Traditional?",
+                    dashSurviveTitle: "Bad Year Survival (Modern)?",
+                    gameBtnText: "Launch Gum Game It!",
+                    bmTitle1: "Traditional Seeds",
+                    bmTitle2: "Improved Seeds",
+                    bmTitle3: "Traditional Seeds with Insurance",
+                    bmTitle4: "Improved Seeds with Insurance"
+                },
+                gameTitles: [
+                    "Round 1: Choice of Normal or High Quality Seeds",
+                    "Round 2: The Choice of Opting for Insurance",
+                    "Round 3: When Insurance Misses a Bad Year (Basis Risk)"
+                ],
+                base: 100, probBad: 0.2, probBasis: 0.33,
+                gameOpen: false, gameTab: 1, simulationCol: 'none',
+                game: { seeds: 'normal', ins: 'no', lastSeason: 'good', lastBasis: false },
                 params: [
                     { key: 'seedCost', label: 'Improved seed cost', min: 0.1, max: 1, step: 0.01, val: 0.1 },
                     { key: 'yieldBen', label: 'Improved yield benefit', min: 1, max: 2, step: 0.1, val: 1.5 },
                     { key: 'cover', label: 'Coverage of insurance', min: 0.1, max: 1, step: 0.01, val: 0.33 },
-                    { key: 'loading', label: 'Loading cost', min: 0, max: 1, step: 0.01, val: 0.15 },
-                    { key: 'savings', label: 'Savings', min: 0, max: 1, step: 0.01, val: 0 }
+                    { key: 'loading', label: 'Loading cost of insurance', min: 0, max: 1, step: 0.01, val: 0.15 },
+                    { key: 'savings', label: 'Savings / Outside Income', min: 0, max: 1, step: 0.01, val: 0 }
                 ],
+
                 get p() { 
                     let out = {}; this.params.forEach(param => out[param.key] = param.val * this.base);
                     return out;
@@ -115,30 +273,87 @@
                 get premium() { return (this.base * (this.p.cover / this.base) * this.probBad) + (this.base * this.p.loading / this.base); },
                 get evTrad() { return (1 - this.probBad) * (this.base + this.p.savings) + (this.probBad * this.p.savings); },
                 get evModern() {
-                    const v = this.p;
-                    const good = v.yieldBen - v.seedCost - this.premium + v.savings;
-                    const badIns = 0 - v.seedCost - this.premium + v.cover + v.savings;
-                    const badBasis = 0 - v.seedCost - this.premium + v.savings;
+                    const v = this.p; const prem = this.premium;
+                    const good = v.yieldBen - v.seedCost - prem + v.savings;
+                    const badIns = 0 - v.seedCost - prem + v.cover + v.savings;
+                    const badBasis = 0 - v.seedCost - prem + v.savings;
                     return (1 - this.probBad) * good + (this.probBad * (1 - this.probBasis)) * badIns + (this.probBad * this.probBasis) * badBasis;
                 },
                 get survivalNet() { return 0 - this.p.seedCost - this.premium + this.p.cover + this.p.savings; },
+
                 summaryData() {
-                    const v = this.p;
+                    const v = this.p; const prem = this.premium;
                     return [
-                        { name: "Traditional, No Ins", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
-                        { name: "Improved, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - this.premium + v.savings, bad: this.survivalNet }
+                        { name: "Traditional, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
+                        { name: "Improved Seeds, No Insurance", ev: (1-this.probBad)*(v.yieldBen - v.seedCost + v.savings) + this.probBad*(v.savings - v.seedCost), good: v.yieldBen - v.seedCost + v.savings, bad: v.savings - v.seedCost },
+                        { name: "Improved Seeds, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - prem + v.savings, bad: this.survivalNet }
                     ];
                 },
-                playRound() {
-                    const outcome = Math.random() < this.probBad ? 'bad' : 'good';
-                    const basis = Math.random() < this.probBasis;
+
+                businessModels() {
+                    const v = this.p; const prem = this.premium;
+                    const configs = [
+                        { title: this.ui.bmTitle1, prod: this.base, seed: 0, ins: 0 },
+                        { title: this.ui.bmTitle2, prod: v.yieldBen, seed: v.seedCost, ins: 0 },
+                        { title: this.ui.bmTitle3, prod: this.base, seed: 0, ins: prem },
+                        { title: this.ui.bmTitle4, prod: v.yieldBen, seed: v.seedCost, ins: prem }
+                    ];
+                    return configs.map(c => {
+                        const payout = c.ins > 0 ? v.cover : 0;
+                        return {
+                            title: c.title,
+                            rows: [
+                                { item: "Revenue", good: c.prod.toFixed(1), bad: "0.0", basis: "0.0" },
+                                { item: "Seed Cost", good: (-c.seed).toFixed(1), bad: (-c.seed).toFixed(1), basis: (-c.seed).toFixed(1) },
+                                { item: "Ins. Cost", good: (-c.ins).toFixed(1), bad: (-c.ins).toFixed(1), basis: (-c.ins).toFixed(1) },
+                                { item: "Payout", good: "0.0", bad: payout.toFixed(1), basis: "0.0" },
+                                { item: "Outside Inc", good: v.savings.toFixed(1), bad: v.savings.toFixed(1), basis: v.savings.toFixed(1) },
+                                { item: "NET", 
+                                  good: (parseFloat(c.prod) - c.seed - c.ins + v.savings).toFixed(1), 
+                                  bad: (0 - c.seed - c.ins + payout + v.savings).toFixed(1), 
+                                  basis: c.ins > 0 ? (0 - c.seed - c.ins + v.savings).toFixed(1) : null 
+                                }
+                            ]
+                        }
+                    });
+                },
+
+                // GUM GAME SPECIFIC LOGIC
+                openGameModal() { this.gameOpen = true; this.resetRound(); },
+                resetRound() { this.simulationCol = 'none'; this.game.lastBasis = false; },
+                playSeason() {
+                    this.game.lastSeason = Math.random() < this.probBad ? 'bad' : 'good';
+                    this.game.lastBasis = false;
+                    this.simulationCol = (this.game.lastSeason === 'good') ? 'good' : 'bad';
+                },
+                playBasis() {
+                    if (this.gameTab < 3) return;
+                    this.game.lastBasis = Math.random() < this.probBasis;
+                    if (this.game.lastSeason === 'bad') {
+                        this.simulationCol = this.game.lastBasis ? 'basis' : 'bad';
+                    }
+                },
+                getActiveGameModel() {
                     const v = this.p;
-                    const s = this.gameState.seeds === 'normal' ? 0 : v.seedCost;
-                    const i = this.gameState.ins === 'yes' ? this.premium : 0;
-                    let payout = (outcome === 'bad' && this.gameState.ins === 'yes' && !basis) ? v.cover : 0;
-                    let yieldAmt = outcome === 'bad' ? 0 : (this.gameState.seeds === 'normal' ? this.base : v.yieldBen);
-                    let total = yieldAmt - s - i + payout + v.savings;
-                    this.gameResult = `Outcome: ${outcome.toUpperCase()}${basis && outcome === 'bad' ? ' (BASIS RISK!)' : ''}<br>Net Result: ${total.toFixed(1)}`;
+                    const prem = (this.gameTab >= 2 && this.game.ins === 'yes') ? this.premium : 0;
+                    const prod = (this.game.seeds === 'normal') ? this.base : v.yieldBen;
+                    const seed = (this.game.seeds === 'normal') ? 0 : v.seedCost;
+                    const payout = (prem > 0) ? v.cover : 0;
+
+                    return {
+                        rows: [
+                            { item: "Revenue", good: prod.toFixed(1), bad: "0.0", basis: "0.0" },
+                            { item: "Seed Cost", good: (-seed).toFixed(1), bad: (-seed).toFixed(1), basis: (-seed).toFixed(1) },
+                            { item: "Ins. Cost", good: (-prem).toFixed(1), bad: (-prem).toFixed(1), basis: (-prem).toFixed(1) },
+                            { item: "Payout", good: "0.0", bad: payout.toFixed(1), basis: "0.0" },
+                            { item: "Outside Inc", good: v.savings.toFixed(1), bad: v.savings.toFixed(1), basis: v.savings.toFixed(1) },
+                            { item: "NET", 
+                                good: (prod - seed - prem + v.savings).toFixed(1), 
+                                bad: (0 - seed - prem + payout + v.savings).toFixed(1), 
+                                basis: (prem > 0) ? (0 - seed - prem + v.savings).toFixed(1) : null
+                            }
+                        ]
+                    };
                 }
             }
         }
