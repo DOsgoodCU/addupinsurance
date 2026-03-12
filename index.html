@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agri-Strategy Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .neg-num { color: #dc2626; font-weight: bold; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-100 p-4" x-data="agriApp()" x-cloak>
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold">Agricultural Strategy Dashboard</h1>
+            <p class="text-blue-200">Passively Hosted Portfolio Version</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div :class="evModern > evTrad ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
+                <h3 class="text-sm uppercase font-semibold opacity-80">Modern EV > Traditional?</h3>
+                <div class="text-3xl font-bold" x-text="evModern > evTrad ? 'YES' : 'NO'"></div>
+                <p class="text-xs" x-text="'Modern: ' + evModern.toFixed(1) + ' vs Trad: ' + evTrad.toFixed(1)"></p>
+            </div>
+            <div :class="survivalNet >= 0 ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
+                <h3 class="text-sm uppercase font-semibold opacity-80">Bad Year Survival?</h3>
+                <div class="text-3xl font-bold" x-text="survivalNet >= 0 ? 'YES' : 'NO'"></div>
+                <p class="text-xs" x-text="'Bad Year Net: ' + survivalNet.toFixed(1)"></p>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <aside class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md space-y-4">
+                <div>
+                    <label class="block font-bold text-sm mb-2">Total Crop Value</label>
+                    <input type="number" x-model.number="base" class="w-full p-2 border rounded">
+                </div>
+                <template x-for="p in params" :key="p.key">
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span x-text="p.label"></span>
+                            <span class="text-blue-600 font-bold" x-text="'= ' + (p.val * base).toFixed(1)"></span>
+                        </div>
+                        <input type="range" :min="p.min" :max="p.max" :step="p.step" x-model.number="p.val" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </template>
+                <button @click="gameOpen = true" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow transition">
+                    Launch Gum Game It!
+                </button>
+            </aside>
+
+            <main class="w-full md:w-2/3 space-y-6">
+                <section class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-bold text-lg mb-4 border-b pb-2 text-blue-900 uppercase">Summary Table</h3>
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50">
+                            <tr><th class="p-2">Strategy</th><th class="p-2">EV</th><th class="p-2">Good</th><th class="p-2">Bad</th></tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="s in summaryData()" :key="s.name">
+                                <tr class="border-t">
+                                    <td class="p-2 font-medium" x-text="s.name"></td>
+                                    <td class="p-2 font-bold" x-text="s.ev.toFixed(1)"></td>
+                                    <td class="p-2" x-text="s.good.toFixed(1)"></td>
+                                    <td class="p-2" :class="s.bad < 0 ? 'neg-num' : ''" x-text="s.bad.toFixed(1)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div x-show="gameOpen" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-4xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
+            <button @click="gameOpen = false" class="absolute top-4 right-4 text-3xl font-bold">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Educational Game Simulator</h2>
+            <div class="flex flex-col md:flex-row gap-6">
+                <div class="w-full md:w-1/3 space-y-4">
+                    <select x-model="gameState.seeds" class="w-full p-2 border rounded"><option value="normal">Normal</option><option value="high">High Quality</option></select>
+                    <select x-model="gameState.ins" class="w-full p-2 border rounded"><option value="no">No Insurance</option><option value="yes">Yes</option></select>
+                    <button @click="playRound()" class="w-full bg-green-600 text-white font-bold py-2 rounded">Simulate Season</button>
+                </div>
+                <div class="w-full md:w-2/3 bg-slate-50 p-6 rounded border text-center">
+                    <div class="flex justify-center gap-4 mb-4">
+                       <div class="border p-2 bg-white rounded"><img :src="gameState.seeds === 'normal' ? 'images/nseed1.png' : 'images/hqseed1.png'" class="h-20 w-20 object-contain"></div>
+                       <div class="text-2xl pt-6">+</div>
+                       <div class="border p-2 bg-white rounded"><img :src="gameState.ins === 'yes' ? 'images/insurance1.png' : 'images/noinsurance.png'" class="h-20 w-20 object-contain"></div>
+                    </div>
+                    <div class="text-left font-mono text-sm border-t pt-4" x-html="gameResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function agriApp() {
+            return {
+                base: 100, probBad: 0.2, probBasis: 0.33, gameOpen: false,
+                gameState: { seeds: 'normal', ins: 'no' }, gameResult: 'Waiting for simulation...',
+                params: [
+                    { key: 'seedCost', label: 'Improved seed cost', min: 0.1, max: 1, step: 0.01, val: 0.1 },
+                    { key: 'yieldBen', label: 'Improved yield benefit', min: 1, max: 2, step: 0.1, val: 1.5 },
+                    { key: 'cover', label: 'Coverage of insurance', min: 0.1, max: 1, step: 0.01, val: 0.33 },
+                    { key: 'loading', label: 'Loading cost', min: 0, max: 1, step: 0.01, val: 0.15 },
+                    { key: 'savings', label: 'Savings', min: 0, max: 1, step: 0.01, val: 0 }
+                ],
+                get p() { 
+                    let out = {}; this.params.forEach(param => out[param.key] = param.val * this.base);
+                    return out;
+                },
+                get premium() { return (this.base * (this.p.cover / this.base) * this.probBad) + (this.base * this.p.loading / this.base); },
+                get evTrad() { return (1 - this.probBad) * (this.base + this.p.savings) + (this.probBad * this.p.savings); },
+                get evModern() {
+                    const v = this.p;
+                    const good = v.yieldBen - v.seedCost - this.premium + v.savings;
+                    const badIns = 0 - v.seedCost - this.premium + v.cover + v.savings;
+                    const badBasis = 0 - v.seedCost - this.premium + v.savings;
+                    return (1 - this.probBad) * good + (this.probBad * (1 - this.probBasis)) * badIns + (this.probBad * this.probBasis) * badBasis;
+                },
+                get survivalNet() { return 0 - this.p.seedCost - this.premium + this.p.cover + this.p.savings; },
+                summaryData() {
+                    const v = this.p;
+                    return [
+                        { name: "Traditional, No Ins", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
+                        { name: "Improved, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - this.premium + v.savings, bad: this.survivalNet }
+                    ];
+                },
+                playRound() {
+                    const outcome = Math.random() < this.probBad ? 'bad' : 'good';
+                    const basis = Math.random() < this.probBasis;
+                    const v = this.p;
+                    const s = this.gameState.seeds === 'normal' ? 0 : v.seedCost;
+                    const i = this.gameState.ins === 'yes' ? this.premium : 0;
+                    let payout = (outcome === 'bad' && this.gameState.ins === 'yes' && !basis) ? v.cover : 0;
+                    let yieldAmt = outcome === 'bad' ? 0 : (this.gameState.seeds === 'normal' ? this.base : v.yieldBen);
+                    let total = yieldAmt - s - i + payout + v.savings;
+                    this.gameResult = `Outcome: ${outcome.toUpperCase()}${basis && outcome === 'bad' ? ' (BASIS RISK!)' : ''}<br>Net Result: ${total.toFixed(1)}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
