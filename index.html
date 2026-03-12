@@ -232,10 +232,15 @@
     <script>
         function agriApp() {
             return {
+                /*
+                -------------------------------------------------------------------------
+                TITLES BLOCK: Update the strings below to change display text in the UI.
+                -------------------------------------------------------------------------
+                */
                 ui: {
-                    currency: "$",
+                    currency: "¤",
                     mainTitle: "Does Insurance Package Add Up? Or Make Things Worse?",
-                    subTitle: "Example: Adoption of improved seeds de-risked by insurance",
+                    subTitle: "Example: Investment in improved seeds de-risked by insurance",
                     normNote: "Original seeds and expenses are normalized to zero.",
                     baseLabel: "Total net crop value per hectare for a good year with original seeds:",
                     
@@ -244,7 +249,7 @@
                     dashEvLabelTrad: "Trad",
                     dashEvBadMsg: "INSURANCE PACKAGE IS MAKING FARMER WORSE OFF",
                     dashSurviveTitle: "Does the farmer break even in a bad year?",
-                    dashSurviveLabel: "Bad Year Profit Level",
+                    dashSurviveLabel: "Bad Year net returns",
                     dashSurviveMsg: "Note: This is about covering costs, farmer may need additional government support for things like food",
                     
                     paramHeading: "Strategy Parameters",
@@ -309,10 +314,11 @@
 
                 summaryData() {
                     const v = this.p;
+                    const prem = this.premium;
                     return [
                         { name: "Original, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
                         { name: "Improved Seeds, No Insurance", ev: (1-this.probBad)*(v.yieldBen - v.seedCost + v.savings) + this.probBad*(v.savings - v.seedCost), good: v.yieldBen - v.seedCost + v.savings, bad: v.savings - v.seedCost },
-                        { name: "Improved Seeds, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - this.premium + v.savings, bad: this.survivalNet }
+                        { name: "Improved Seeds, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - prem + v.savings, bad: this.survivalNet }
                     ];
                 },
 
