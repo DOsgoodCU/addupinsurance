@@ -22,15 +22,20 @@
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div :class="evModern > evTrad ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
+            <div :class="evModern > evTrad ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center flex flex-col justify-center min-h-[140px]">
                 <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashEvTitle"></h3>
                 <div class="text-3xl font-bold" x-text="evModern > evTrad ? 'YES' : 'NO'"></div>
-                <p class="text-xs" x-text="`Modern: ${evModern.toFixed(1)} vs Trad: ${evTrad.toFixed(1)}`"></p>
+                <p class="text-xs" x-text="`${ui.dashEvLabelModern}: ${evModern.toFixed(1)} ${ui.dashEvLabelTrad}: ${evTrad.toFixed(1)}`"></p>
+                <template x-if="evModern <= evTrad">
+                    <p class="mt-2 text-[10px] font-black bg-white/20 py-1 rounded uppercase tracking-wider" x-text="ui.dashEvBadMsg"></p>
+                </template>
             </div>
-            <div :class="survivalNet >= 0 ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center">
+
+            <div :class="survivalNet >= 0 ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center flex flex-col justify-center min-h-[140px]">
                 <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashSurviveTitle"></h3>
                 <div class="text-3xl font-bold" x-text="survivalNet >= 0 ? 'YES' : 'NO'"></div>
-                <p class="text-xs" x-text="`Bad Year Profit: ${survivalNet.toFixed(1)}`"></p>
+                <p class="text-xs" x-text="`${ui.dashSurviveLabel}: ${survivalNet.toFixed(1)}`"></p>
+                <p class="mt-2 text-[10px] font-medium opacity-90 italic" x-text="ui.dashSurviveMsg"></p>
             </div>
         </div>
 
@@ -42,11 +47,11 @@
                 </div>
 
                 <div class="space-y-4">
-                    <h4 class="font-bold border-b pb-1 text-blue-900 text-xs uppercase tracking-wider">Parameters</h4>
+                    <h4 class="font-bold border-b pb-1 text-blue-900 text-xs uppercase tracking-wider" x-text="ui.paramHeading"></h4>
                     <template x-for="p in params" :key="p.key">
                         <div>
                             <div class="flex justify-between text-[11px] font-semibold">
-                                <span x-text="p.label"></span>
+                                <span x-text="`${ui[p.key] || p.label}: ${p.val.toFixed(2)}`"></span>
                                 <span class="text-blue-700 font-bold" x-text="'= ' + (p.val * base).toFixed(1)"></span>
                             </div>
                             <input type="range" :min="p.min" :max="p.max" :step="p.step" x-model.number="p.val" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-1">
@@ -55,14 +60,14 @@
                 </div>
 
                 <div class="space-y-4 pt-4 border-t">
-                    <h4 class="font-bold text-blue-900 text-xs uppercase tracking-wider">Probabilities</h4>
+                    <h4 class="font-bold text-blue-900 text-xs uppercase tracking-wider" x-text="ui.probHeading"></h4>
                     <div class="space-y-3">
                         <div>
-                            <label class="text-[11px] block font-medium">Bad Year (1 in <span x-text="(1/probBad).toFixed(1)"></span>)</label>
+                            <label class="text-[11px] block font-medium" x-text="`${ui.probBadLabel}: ${probBad.toFixed(2)} (1 ${ui.probIn} ${(1/probBad).toFixed(1)})`"></label>
                             <input type="range" min="0.05" max="1" step="0.01" x-model.number="probBad" class="w-full">
                         </div>
                         <div>
-                            <label class="text-[11px] block font-medium">Basis Risk (1 in <span x-text="(1/probBasis).toFixed(1)"></span>)</label>
+                            <label class="text-[11px] block font-medium" x-text="`${ui.probBasisLabel}: ${probBasis.toFixed(2)} (1 ${ui.probIn} ${(1/probBasis).toFixed(1)})`"></label>
                             <input type="range" min="0" max="1" step="0.01" x-model.number="probBasis" class="w-full">
                         </div>
                     </div>
@@ -125,63 +130,55 @@
     <div x-show="gameOpen" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 md:p-4">
         <div class="bg-white rounded-xl w-full max-w-6xl h-[95vh] overflow-hidden flex flex-col shadow-2xl relative">
             <button @click="gameOpen = false" class="absolute top-4 right-4 text-3xl font-bold z-10 hover:text-red-600">&times;</button>
-            
             <div class="p-4 bg-slate-50 border-b flex justify-between items-center pr-12">
-                <h2 class="text-lg font-bold text-blue-900 uppercase tracking-tight">Game Simulator: Round <span x-text="gameTab"></span></h2>
-                <div class="text-[10px] font-mono bg-blue-100 text-blue-800 px-3 py-1 rounded-full uppercase">Current Savings: <span x-text="p.savings.toFixed(1)"></span></div>
+                <h2 class="text-lg font-bold text-blue-900 uppercase tracking-tight" x-text="`${ui.simRoundLabel} ${gameTab}`"></h2>
             </div>
-
             <div class="flex flex-1 overflow-hidden">
                 <div class="w-56 bg-slate-100 p-4 border-r space-y-4 flex flex-col">
                     <div class="space-y-4 flex-1">
                         <div>
-                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Select Seed Type:</label>
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1" x-text="ui.simSeedSelect"></label>
                             <select x-model="game.seeds" class="w-full p-2 border rounded text-xs bg-white">
-                                <option value="normal">Normal Quality</option>
-                                <option value="high">High Quality</option>
+                                <option value="normal" x-text="ui.seedNormal"></option>
+                                <option value="high" x-text="ui.seedHigh"></option>
                             </select>
                         </div>
                         <div x-show="gameTab >= 2">
-                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Insurance Policy:</label>
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1" x-text="ui.simInsSelect"></label>
                             <select x-model="game.ins" class="w-full p-2 border rounded text-xs bg-white">
-                                <option value="no">No Insurance</option>
-                                <option value="yes">Active Insurance</option>
+                                <option value="no" x-text="ui.insNo"></option>
+                                <option value="yes" x-text="ui.insYes"></option>
                             </select>
                         </div>
                         <div class="pt-4 border-t">
-                            <button @click="playSeason()" class="w-full bg-blue-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-blue-700">SIMULATE SEASON</button>
+                            <button @click="playSeason()" class="w-full bg-blue-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-blue-700" x-text="ui.simBtnPlay"></button>
+                            <div class="text-center mt-2 text-[10px] font-bold text-blue-900" x-text="`${ui.simCounterLabel} ${simCounts[gameTab]}`"></div>
                         </div>
                         <div class="pt-2" x-show="gameTab === 3">
-                            <button @click="playBasis()" class="w-full bg-red-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-red-700">CHECK BASIS RISK</button>
+                            <button @click="playBasis()" class="w-full bg-red-600 text-white text-[10px] font-bold py-3 rounded-lg shadow hover:bg-red-700" x-text="ui.simBtnBasis"></button>
                         </div>
                     </div>
-                    <div class="text-[9px] text-slate-400 italic leading-tight">
-                        Note: Game logic uses parameters defined on the main dashboard.
-                    </div>
                 </div>
-
                 <div class="flex-1 flex flex-col bg-white overflow-y-auto">
                     <div class="flex border-b sticky top-0 bg-white z-10">
                         <template x-for="i in [1,2,3]" :key="i">
-                            <button @click="gameTab = i; resetRound();" :class="gameTab === i ? 'border-b-4 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-400'" class="flex-1 py-3 font-bold text-[10px] uppercase tracking-widest transition-all" x-text="'Round ' + i"></button>
+                            <button @click="gameTab = i; resetRound();" :class="gameTab === i ? 'border-b-4 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-400'" class="flex-1 py-3 font-bold text-[10px] uppercase tracking-widest transition-all" x-text="ui['simTabTitle' + i]"></button>
                         </template>
                     </div>
-
                     <div class="p-6 space-y-6">
                         <div class="text-center">
                             <h3 class="text-base font-bold text-slate-800 mb-4" x-text="gameTitles[gameTab-1]"></h3>
-                            
                             <div class="flex justify-center items-center gap-2 md:gap-4 mb-6">
                                 <div class="flex flex-col items-center">
                                     <img :src="game.seeds === 'normal' ? 'images/nseed1.png' : 'images/hqseed1.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
-                                    <span class="text-[8px] font-black mt-1 text-slate-400">SEED</span>
+                                    <span class="text-[8px] font-black mt-1 text-slate-400 uppercase">Seed</span>
                                 </div>
                                 <template x-if="gameTab >= 2">
                                     <div class="flex items-center gap-2 md:gap-4">
                                         <div class="text-xl font-light text-slate-300">+</div>
                                         <div class="flex flex-col items-center">
                                             <img :src="game.ins === 'yes' ? 'images/insurance1.png' : 'images/noinsurance.png'" class="h-20 w-20 object-contain border-2 border-slate-100 bg-white p-2 rounded-lg shadow-sm">
-                                            <span class="text-[8px] font-black mt-1 text-slate-400">INSURANCE</span>
+                                            <span class="text-[8px] font-black mt-1 text-slate-400 uppercase">Insurance</span>
                                         </div>
                                     </div>
                                 </template>
@@ -201,7 +198,6 @@
                                 </template>
                             </div>
                         </div>
-
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <h4 class="text-[10px] font-bold text-blue-900 uppercase mb-2">Live Simulation Ledger</h4>
                             <div class="overflow-x-auto">
@@ -226,9 +222,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <p class="text-[9px] text-slate-500 mt-2 italic text-center">Highlighted column represents the current simulation state.</p>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -240,26 +234,66 @@
             return {
                 ui: {
                     mainTitle: "Does Insurance Package Add Up? Or Make Things Worse?",
-                    subTitle: "Example: Can adoption of improved seeds de-risked by insurance make farmers better off?",
-                    baseLabel: "Total crop value per hectare for a good year with original seeds:",
-                    dashEvTitle: "Is the Farmer making any more money with the Package?",
+                    subTitle: "Example: Adoption of improved seeds de-risked by insurance",
+                    
+                    // Dashboard boxes
+                    dashEvTitle: "Does Farmer better off in general with the Insurance Package?",
+                    dashEvLabelModern: "Modern",
+                    dashEvLabelTrad: "Trad",
+                    dashEvBadMsg: "INSURANCE PACKAGE IS MAKING FARMER WORSE OFF",
+                    
                     dashSurviveTitle: "Does the farmer break even in a bad year?",
+                    dashSurviveLabel: "Bad Year Profit Level",
+                    dashSurviveMsg: "Note: This is about covering costs, farmer may need additional government support for things like food", // Editable Note
+                    
+                    // Sidebar
+                    baseLabel: "Original seeds and expenses are normalized to zero. Total net crop value per hectare for a good year with original seeds:",
+                    paramHeading: "Parameters",
+                    probHeading: "Probabilities",
+                    probBadLabel: "Bad Year (Drought frequency)",
+                    probBasisLabel: "Basis Risk (fraction of years insurance should pay but doesnt)",
+                    probIn: "in",
                     gameBtnText: "Simulate!",
+                    
+                    // Sliders
+                    seedCost: "Improved seed cost as fraction of crop value above, and in total net value",
+                    yieldBen: "Improved yield benefit (multiplier to original yields)",
+                    cover: "Typical Insurance Payout Size (as fraction of original crop value)",
+                    loading: "Loading cost of insurance (insurance fees above average of no payout and typical payouts)",
+                    savings: "Savings / Outside Income: Additional risk management money available to farmer",
+
+                    // Grid Titles
                     bmTitle1: "Original Seeds",
                     bmTitle2: "Improved Seeds",
                     bmTitle3: "Original Seeds with Insurance",
-                    bmTitle4: "Improved Seeds with Insurance"
+                    bmTitle4: "Improved Seeds with Insurance",
+
+                    // Simulator
+                    simRoundLabel: "Game Simulator: Round",
+                    simTabTitle1: "Seed Type",
+                    simTabTitle2: "Insurance",
+                    simTabTitle3: "Imperfect insurance",
+                    simSeedSelect: "Select Seed Type:",
+                    seedNormal: "Original",
+                    seedHigh: "Improved",
+                    simInsSelect: "Insurance Policy:",
+                    insNo: "No Insurance",
+                    insYes: "Active Insurance",
+                    simBtnPlay: "SIMULATE SEASON",
+                    simBtnBasis: "CHECK BASIS RISK",
+                    simCounterLabel: "Total Rolls of the Dice this Round:"
                 },
                 gameTitles: [
-                    "Seeds Only 1: Choice of Normal or Improved Seeds",
+                    "Seeds Only 1: Choice of Original or Improved Seeds",
                     "Insurance 2: Insurance Choice",
                     "Imperfect Insurance: When Insurance Misses some Bad Years (Basis Risk)"
                 ],
                 base: 100, probBad: 0.2, probBasis: 0.33,
                 gameOpen: false, gameTab: 1, simulationCol: 'none',
+                simCounts: { 1: 0, 2: 0, 3: 0 },
                 game: { seeds: 'normal', ins: 'no', lastSeason: 'good', lastBasis: false },
                 params: [
-                    { key: 'seedCost', label: 'Improved seed cost', min: 0.1, max: 1, step: 0.01, val: 0.1 },
+                    { key: 'seedCost', label: 'Improved seed cost', min: 0, max: 0.4, step: 0.01, val: 0.1 },
                     { key: 'yieldBen', label: 'Improved yield benefit', min: 1, max: 2, step: 0.1, val: 1.5 },
                     { key: 'cover', label: 'Coverage of insurance', min: 0.1, max: 1, step: 0.01, val: 0.33 },
                     { key: 'loading', label: 'Loading cost of insurance', min: 0, max: 1, step: 0.01, val: 0.15 },
@@ -318,10 +352,10 @@
                     });
                 },
 
-                // GUM GAME SPECIFIC LOGIC
                 openGameModal() { this.gameOpen = true; this.resetRound(); },
                 resetRound() { this.simulationCol = 'none'; this.game.lastBasis = false; },
                 playSeason() {
+                    this.simCounts[this.gameTab]++;
                     this.game.lastSeason = Math.random() < this.probBad ? 'bad' : 'good';
                     this.game.lastBasis = false;
                     this.simulationCol = (this.game.lastSeason === 'good') ? 'good' : 'bad';
