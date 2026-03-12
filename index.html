@@ -244,7 +244,7 @@
                     normNote: "Original seeds and expenses are normalized to zero.",
                     baseLabel: "Total net crop value per hectare for a good year with original seeds:",
                     
-                    dashEvTitle: "Does Farmer better off in general with the Insurance Package?",
+                    dashEvTitle: "Is farmer better off on average with the Insurance Package?",
                     dashEvLabelModern: "Modern",
                     dashEvLabelTrad: "Trad",
                     dashEvBadMsg: "INSURANCE PACKAGE IS MAKING FARMER WORSE OFF",
@@ -254,7 +254,7 @@
                     
                     paramHeading: "Strategy Parameters",
                     probHeading: "Probabilities",
-                    probBadLabel: "Bad Year (Drought) Probability",
+                    probBadLabel: "Bad Year (Drought and Typical Payout) Probability",
                     probBasisLabel: "Basis Risk (fraction of years insurance fails)",
                     probIn: "in",
                     gameBtnText: "Simulate",
@@ -317,6 +317,7 @@
                     const prem = this.premium;
                     return [
                         { name: "Original, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
+                        { name: "Original, Insurance", ev: (1 - this.probBad) * (this.base - prem + v.savings) + (this.probBad * (1 - this.probBasis)) * (0 - prem + v.cover + v.savings) + (this.probBad * this.probBasis) * (0 - prem + v.savings), good: this.base - prem + v.savings, bad: 0 - prem + v.cover + v.savings },
                         { name: "Improved Seeds, No Insurance", ev: (1-this.probBad)*(v.yieldBen - v.seedCost + v.savings) + this.probBad*(v.savings - v.seedCost), good: v.yieldBen - v.seedCost + v.savings, bad: v.savings - v.seedCost },
                         { name: "Improved Seeds, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - prem + v.savings, bad: this.survivalNet }
                     ];
