@@ -83,6 +83,11 @@
                     </div>
                 </div>
 
+                <div class="p-4 bg-amber-50 rounded-lg border border-amber-200 text-center">
+                    <div class="text-[10px] font-bold uppercase text-amber-700 tracking-wider">Insurance Cash Premium</div>
+                    <div class="text-2xl font-black text-amber-900" x-text="`${ui.currency}${premium.toFixed(1)}`"></div>
+                </div>
+
                 <button @click="openGameModal()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg transition" x-text="ui.gameBtnText"></button>
             </aside>
 
@@ -105,6 +110,9 @@
                                 </template>
                             </tbody>
                         </table>
+                        <div class="mt-3 text-[10px] text-slate-500 italic leading-relaxed">
+                            * Note: Basis risk represents the probability of insurance failing to pay out during a bad year. Expected Value accounts for this loss (weighted by basis risk probability), whereas the "Bad Year" column displays the net result assuming a successful insurance payout.
+                        </div>
                     </div>
                 </section>
 
@@ -230,13 +238,29 @@
     </div>
 
     <script>
+        /**
+         * -------------------------------------------------------------------------
+         * GLOBAL CONFIGURATION DEFAULTS
+         * -------------------------------------------------------------------------
+         * Coder Note: Set initial application state and numeric defaults here.
+         * All values are fractions/multipliers relative to 'base' (initialized at 100).
+         */
+        const CONFIG = {
+            // PARAMETERS
+            baseValue: 100,           // Initial net crop value for a good year
+            improvedSeedCost: 0.2,   // Fraction of base value (e.g. 0.1 = 10%)
+            yieldBenefit: 2.0,       // Multiplier (e.g. 1.5 = 50% better than original)
+            insuranceCoverage: 0.5,  // Coverage size as fraction of base
+            insuranceLoading: 0.25,   // Administrative fee above average payout
+            savingsValue: 0.1,          // Additional income as fraction of base
+
+            // PROBABILITIES
+            probBadYear: 0.2,         // Probability of drought/payout event (0 to 1)
+            probBasisRisk: 0.33       // Probability of insurance failing to pay (0 to 1)
+        };
+
         function agriApp() {
             return {
-                /*
-                -------------------------------------------------------------------------
-                TITLES BLOCK: Update the strings below to change display text in the UI.
-                -------------------------------------------------------------------------
-                */
                 ui: {
                     currency: "¤",
                     mainTitle: "Does Insurance Package Add Up? Or Make Things Worse?",
@@ -248,9 +272,9 @@
                     dashEvLabelModern: "Modern",
                     dashEvLabelTrad: "Trad",
                     dashEvBadMsg: "INSURANCE PACKAGE IS MAKING FARMER WORSE OFF",
-                    dashSurviveTitle: "Does the farmer break even in a bad year?",
+                    dashSurviveTitle: "Is insurance payment enough to break even in a bad year?",
                     dashSurviveLabel: "Bad Year net returns",
-                    dashSurviveMsg: "Note: This is about covering costs, farmer may need additional government support for things like food",
+                    dashSurviveMsg: "Note: This is about covering costs, farmer may need additional support for things like food",
                     
                     paramHeading: "Strategy Parameters",
                     probHeading: "Probabilities",
@@ -285,16 +309,22 @@
                     simCounterLabel: "Seasons Simulated:"
                 },
                 gameTitles: ["Choice of Seed", "Choice of Insurance", "Risk of Policy Failure"],
-                base: 100, probBad: 0.2, probBasis: 0.33,
+                
+                // Initialization using CONFIG object
+                base: CONFIG.baseValue, 
+                probBad: CONFIG.probBadYear, 
+                probBasis: CONFIG.probBasisRisk,
+                
                 gameOpen: false, gameTab: 1, simulationCol: 'none',
                 simCounts: { 1: 0, 2: 0, 3: 0 },
                 game: { seeds: 'normal', ins: 'no', lastSeason: 'good', lastBasis: false },
+                
                 params: [
-                    { key: 'seedCost', label: 'Improved seed cost', min: 0, max: 0.4, step: 0.01, val: 0.1 },
-                    { key: 'yieldBen', label: 'Improved yield benefit', min: 1, max: 2, step: 0.1, val: 1.5 },
-                    { key: 'cover', label: 'Coverage of insurance', min: 0.1, max: 1, step: 0.01, val: 0.33 },
-                    { key: 'loading', label: 'Loading cost of insurance', min: 0, max: 1, step: 0.01, val: 0.15 },
-                    { key: 'savings', label: 'Savings / Outside Income', min: 0, max: 1, step: 0.01, val: 0 }
+                    { key: 'seedCost', label: 'Improved seed cost', min: 0, max: 0.4, step: 0.01, val: CONFIG.improvedSeedCost },
+                    { key: 'yieldBen', label: 'Improved yield benefit', min: 1, max: 2, step: 0.1, val: CONFIG.yieldBenefit },
+                    { key: 'cover', label: 'Coverage of insurance', min: 0.1, max: 1, step: 0.01, val: CONFIG.insuranceCoverage },
+                    { key: 'loading', label: 'Loading cost of insurance', min: 0, max: 1, step: 0.01, val: CONFIG.insuranceLoading },
+                    { key: 'savings', label: 'Savings / Outside Income', min: 0, max: 1, step: 0.01, val: CONFIG.savingsValue }
                 ],
 
                 get p() { 
