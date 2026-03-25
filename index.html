@@ -249,14 +249,36 @@
 
         function agriApp() {
             return {
-                ui: {
-                    currency: "¤", mainTitle: "Does Insurance Package Add Up?", subTitle: "Example: Investment in improved seeds de-risked by insurance",
-                    baseLabel: "Total net crop value (Good Year, Original Seeds):", paramHeading: "Strategy Parameters", probHeading: "Probabilities",
-                    probBadLabel: "Bad Year Probability", probBasisLabel: "Basis Risk Probability", gameBtnText: "Simulate",
-                    seedCost: "Improved seed cost", yieldBen: "Improved yield benefit", cover: "Typical Payout Size", loading: "Insurance Loading Fee", savings: "Outside Income / Savings",
-                    simRoundLabel: "Simulation: Round", simTabTitle1: "Seed Choice", simTabTitle2: "Insurance Choice", simTabTitle3: "Basis Risk",
-                    simBtnPlay: "SIMULATE SEASON", simBtnBasis: "CHECK BASIS RISK", simCounterLabel: "Seasons Simulated:"
-                },
+		ui: {
+		    currency: "¤", 
+		    mainTitle: "Does Insurance Package Add Up?", 
+		    subTitle: "Example: Investment in improved seeds de-risked by insurance",
+		    baseLabel: "Total net crop value (Good Year, Original Seeds):", 
+		    paramHeading: "Strategy Parameters", 
+		    probHeading: "Probabilities",
+		    probBadLabel: "Bad Year Probability", 
+		    probBasisLabel: "Basis Risk Probability", 
+		    gameBtnText: "Simulate",
+		    seedCost: "Improved seed cost", 
+		    yieldBen: "Improved yield benefit", 
+		    cover: "Typical Payout Size", 
+		    loading: "Insurance Loading Fee", 
+		    savings: "Outside Income / Savings",
+		    
+		    dashEvTitle: "Higher Expected Value?",
+		    dashEvLabelModern: "Modern",
+		    dashEvLabelTrad: "Trad",
+		    dashSurviveTitle: "Survival (Bad Year + Insurance)?",
+		    dashSurviveLabel: "Net Position",
+		    
+		    simRoundLabel: "Simulation: Round", 
+		    simTabTitle1: "Seed Choice", 
+		    simTabTitle2: "Insurance Choice", 
+		    simTabTitle3: "Basis Risk",
+		    simBtnPlay: "SIMULATE SEASON", 
+		    simBtnBasis: "CHECK BASIS RISK", 
+		    simCounterLabel: "Seasons Simulated:"
+		},
                 base: CONFIG.baseValue, probBad: CONFIG.probBadYear, probBasis: CONFIG.probBasisRisk, gameOpen: false, gameTab: 1, simulationCol: 'none',
                 simCounts: { 1: 0, 2: 0, 3: 0 }, game: { seeds: 'normal', ins: 'no', lastSeason: 'good', lastBasis: false },
                 params: [
