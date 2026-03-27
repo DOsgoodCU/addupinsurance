@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Does Insurance Package Add Up or Make Things Worse?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .neg-num { color: #dc2626; font-weight: bold; }
+        [x-cloak] { display: none !important; }
+        .table-compact td, .table-compact th { padding: 0.4rem; border-bottom: 1px solid #e2e8f0; }
+        .active-cell { background-color: #fef08a; font-weight: bold; border: 2px solid #eab308 !important; }
+    </style>
+</head>
+<body class="bg-slate-100 p-4" x-data="agriApp()" x-cloak>
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        <header class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold" x-text="ui.mainTitle"></h1>
+            <p class="text-blue-200" x-text="ui.subTitle"></p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div :class="evModern > evTrad ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashEvTitle"></h3>
+                <div class="text-3xl font-bold" x-text="evModern > evTrad ? 'YES' : 'NO'"></div>
+                <p class="text-xs" x-text="`${ui.dashEvLabelModern}: ${ui.currency}${evModern.toFixed(1)} | ${ui.dashEvLabelTrad}: ${ui.currency}${evTrad.toFixed(1)}`"></p>
+            </div>
+
+            <div :class="survivalNet >= 0 ? 'bg-green-600' : 'bg-red-600'" class="p-4 rounded-lg shadow text-white text-center flex flex-col justify-center min-h-[140px]">
+                <h3 class="text-sm uppercase font-semibold opacity-80" x-text="ui.dashSurviveTitle"></h3>
+                <div class="text-3xl font-bold" x-text="survivalNet >= 0 ? 'YES' : 'NO'"></div>
+                <p class="text-xs" x-text="`${ui.dashSurviveLabel}: ${ui.currency}${survivalNet.toFixed(1)}`"></p>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            <aside class="w-full md:w-1/3 bg-white p-6 rounded-xl shadow-md h-fit space-y-6 border-t-4 border-blue-900">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block font-bold text-xs mb-2 text-slate-700" x-text="ui.baseLabel"></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-slate-400 font-bold" x-text="ui.currency"></span>
+                            <input type="number" x-model.number="base" class="w-full pl-7 p-2 border rounded-md bg-slate-50 font-bold text-blue-900">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <h4 class="font-bold border-b pb-1 text-blue-900 text-xs uppercase tracking-wider" x-text="ui.paramHeading"></h4>
+                    <template x-for="pItem in params" :key="pItem.key">
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[10px] leading-tight text-slate-600 pr-4" x-text="`${ui[pItem.key] || pItem.label}:`"></span>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap" 
+                                      x-text="pItem.key === 'loading' ? `${(pItem.val * 100).toFixed(0)}%` : `${ui.currency}${(pItem.val * base).toFixed(1)}` "></span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="range" :min="pItem.min" :max="pItem.max" :step="pItem.step" x-model.number="pItem.val" class="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <span class="text-[10px] font-mono font-bold text-slate-400 w-8 text-right" x-text="pItem.val.toFixed(2)"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t">
+                    <h4 class="font-bold text-blue-900 text-xs uppercase tracking-wider" x-text="ui.probHeading"></h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[11px] block font-medium text-slate-700" x-text="`${ui.probBadLabel}: ${probBad.toFixed(2)}`"></label>
+                            <input type="range" min="0.05" max="1" step="0.01" x-model.number="probBad" class="w-full">
+                        </div>
+                        <div>
+                            <label class="text-[11px] block font-medium text-slate-700" x-text="`${ui.probBasisLabel}: ${probBasis.toFixed(2)}`"></label>
+                            <input type="range" min="0" max="1" step="0.01" x-model.number="probBasis" class="w-full">
+                        </div>
+                    </div>
+                </div>
+                <button @click="openGameModal()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-lg transition" x-text="ui.gameBtnText"></button>
+            </aside>
+
+            <main class="w-full md:w-2/3 space-y-6">
+                <div :class="premium > p.cover ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'" 
+                     class="rounded-xl border-2 p-5 text-center shadow-sm transition-colors duration-300">
+                    <div class="text-xs font-bold uppercase tracking-widest mb-1" :class="premium > p.cover ? 'text-red-700' : 'text-green-700'">Calculated Insurance Cash Premium</div>
+                    <div class="text-4xl font-black" :class="premium > p.cover ? 'text-red-900' : 'text-green-900'" x-text="`${ui.currency}${premium.toFixed(1)}`"></div>
+                    <template x-if="premium > p.cover">
+                        <p class="text-[10px] text-red-600 mt-2 font-bold uppercase tracking-tight">⚠️ Warning: Typical payout (<span x-text="`${ui.currency}${p.cover.toFixed(1)}`"></span>) is less than the insurance premium</p>
+                    </template>
+                    <template x-if="premium <= p.cover">
+                        <p class="text-[10px] text-green-600 mt-2 italic">Based on current payout size, loading fee markup, and probability of a bad year.</p>
+                    </template>
+                </div>
+
+                <section class="bg-white p-6 rounded-xl shadow-md">
+                    <h3 class="font-bold text-lg mb-4 border-b pb-2 text-blue-900 uppercase tracking-wide">I. Summary Table</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left table-compact">
+                            <thead class="bg-slate-50">
+                                <tr><th>Strategy</th><th>Exp. Value</th><th>Good Year</th><th>Bad Year</th></tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="s in summaryData()" :key="s.name">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="font-medium text-xs" x-text="s.name"></td>
+                                        <td class="font-bold text-blue-800" x-text="`${ui.currency}${s.ev.toFixed(1)}`"></td>
+                                        <td x-text="`${ui.currency}${s.good.toFixed(1)}`"></td>
+                                        <td :class="s.bad < 0 ? 'neg-num' : ''" x-text="`${ui.currency}${s.bad.toFixed(1)}`"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <h3 class="font-bold text-lg border-b pb-2 text-blue-900 uppercase tracking-wide">II. Strategy Business Models</h3>
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        <template x-for="bm in businessModels()" :key="bm.title">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                                <h4 class="bg-slate-800 text-white px-3 py-1 text-[11px] font-bold mb-3 rounded shadow-sm inline-block uppercase tracking-tighter" x-text="bm.title"></h4>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-[10px] text-left table-compact leading-tight">
+                                        <thead><tr class="text-slate-500 border-b"><th>Item</th><th>Good</th><th>Bad</th><th>Basis</th></tr></thead>
+                                        <tbody>
+                                            <template x-for="row in bm.rows" :key="row.item">
+                                                <tr :class="row.item === 'NET' ? 'font-bold bg-slate-50 border-t-2' : ''">
+                                                    <td x-text="row.item"></td>
+                                                    <td :class="row.good < 0 ? 'neg-num' : ''" x-text="row.good"></td>
+                                                    <td :class="row.bad < 0 ? 'neg-num' : ''" x-text="row.bad"></td>
+                                                    <td :class="row.basis < 0 ? 'neg-num' : ''" x-text="row.basis === null ? '-' : row.basis"></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <div x-show="gameOpen" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 md:p-4" x-transition x-cloak>
+        <div class="bg-white rounded-xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col shadow-2xl relative">
+            <button @click="gameOpen = false" class="absolute top-4 right-4 text-3xl font-bold z-10 hover:text-red-600">&times;</button>
+            <div class="p-4 bg-slate-50 border-b">
+                <h2 class="text-lg font-bold text-blue-900 uppercase tracking-tight" x-text="`${ui.simRoundLabel} ${gameTab}`"></h2>
+            </div>
+            <div class="flex flex-1 overflow-hidden">
+                <div class="w-64 bg-slate-100 p-4 border-r space-y-4 flex flex-col">
+                    <div class="space-y-4 flex-1 text-xs">
+                        <div class="bg-white p-3 rounded border border-slate-200 space-y-2">
+                            <h5 class="font-black text-[10px] text-blue-800 uppercase border-b pb-1">Probability Panel</h5>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Good Year:</span>
+                                <span class="font-bold text-blue-700" x-text="`${(1-probBad).toFixed(2)} (1 in ${(1/(1-probBad)).toFixed(1)})`"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Bad Year:</span>
+                                <span class="font-bold text-red-600" x-text="`${probBad.toFixed(2)} (1 in ${(1/probBad).toFixed(1)})`"></span>
+                            </div>
+                            <div x-show="gameTab === 3" class="pt-2 mt-2 border-t border-dashed">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">Basis Risk:</span>
+                                    <span class="font-bold text-amber-600" x-text="`${probBasis.toFixed(2)} (1 in ${(1/probBasis).toFixed(1)})`"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Select Package:</label>
+                            <select x-model="game.seeds" class="w-full p-2 border rounded bg-white">
+                                <option value="normal">Original</option>
+                                <option value="high">Improved</option>
+                            </select>
+                        </div>
+                        <div x-show="gameTab >= 2">
+                            <label class="block font-bold text-[10px] text-slate-500 uppercase mb-1">Insurance Policy:</label>
+                            <select x-model="game.ins" class="w-full p-2 border rounded bg-white">
+                                <option value="no">Don't Purchase</option>
+                                <option value="yes">Purchase</option>
+                            </select>
+                        </div>
+                        <div class="pt-4 border-t">
+                            <button @click="playSeason()" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow hover:bg-blue-700 uppercase" x-text="ui.simBtnPlay"></button>
+                            <div class="text-center mt-2 font-bold text-blue-900" x-text="`${ui.simCounterLabel} ${simCounts[gameTab]}`"></div>
+                        </div>
+                        <div class="pt-2" x-show="gameTab === 3 && game.lastSeason === 'bad'">
+                            <button @click="playBasis()" class="w-full bg-red-600 text-white font-bold py-3 rounded-lg shadow hover:bg-red-700 uppercase" x-text="ui.simBtnBasis"></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 flex flex-col bg-white overflow-y-auto">
+                    <div class="flex border-b sticky top-0 bg-white z-10 text-[10px]">
+                        <template x-for="i in [1,2,3]" :key="i">
+                            <button @click="gameTab = i; resetRound();" :class="gameTab === i ? 'border-b-4 border-blue-600 text-blue-600 bg-blue-50/50' : 'text-slate-400'" class="flex-1 py-3 font-bold uppercase tracking-widest" x-text="ui['simTabTitle' + i]"></button>
+                        </template>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <div class="text-center">
+                            <div class="flex justify-center items-center gap-4 mb-6">
+                                <div class="flex flex-col items-center">
+                                    <div class="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center text-2xl" x-text="game.seeds === 'normal' ? '📦' : '💎'"></div>
+                                    <span class="text-[8px] font-black mt-1 text-slate-400 uppercase">Package Choice</span>
+                                </div>
+                                <template x-if="gameTab >= 2">
+                                    <div class="flex items-center gap-4">
+                                        <div class="text-xl font-light text-slate-300">+</div>
+                                        <div class="flex flex-col items-center">
+                                            <div class="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center text-2xl" x-text="game.ins === 'yes' ? '📜' : '❌'"></div>
+                                            <span class="text-[8px] font-black mt-1 text-slate-400 uppercase">Insurance</span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div class="text-xl font-light text-slate-300">+</div>
+                                <div class="flex flex-col items-center">
+                                    <div class="h-16 w-16 bg-slate-100 rounded-lg flex items-center justify-center text-2xl" x-text="simulationCol === 'none' ? '❔' : (game.lastSeason === 'good' ? '☁️' : '☀️')"></div>
+                                    <span class="text-[8px] font-black mt-1 text-slate-400 uppercase" x-text="simulationCol === 'none' ? 'Weather' : game.lastSeason"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <table class="w-full text-[11px] text-left table-compact bg-white rounded shadow-sm">
+                                <thead class="bg-slate-800 text-white">
+                                    <tr><th>Item</th><th class="text-center">Good (Clouds)</th><th class="text-center">Bad (Sun)</th><th class="text-center">Basis</th></tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="row in getActiveGameModel().rows" :key="row.item">
+                                        <tr :class="row.item === 'NET' ? 'font-bold border-t-2 bg-slate-50' : ''">
+                                            <td x-text="row.item"></td>
+                                            <td class="text-center" :class="simulationCol === 'good' ? 'active-cell' : ''" x-text="row.good"></td>
+                                            <td class="text-center" :class="simulationCol === 'bad' ? 'active-cell' : ''" x-text="row.bad"></td>
+                                            <td class="text-center" :class="simulationCol === 'basis' ? 'active-cell' : ''" x-text="row.basis === null ? '-' : row.basis"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = { baseValue: 100, improvedPackageCost: 0.25, yieldBenefit: 1.5, insuranceCoverage: 0.4, insuranceLoading: 0.5, savingsValue: 0.0, probBadYear: 0.2, probBasisRisk: 0.33 };
+
+        function agriApp() {
+            return {
+		ui: {
+		    currency: "¤", 
+		    mainTitle: "Does Insurance Package Add Up?", 
+		    subTitle: "Example: Investment in improved packages de-risked by insurance",
+		    baseLabel: "Total net crop value (Good Year, Original Package):", 
+		    paramHeading: "Strategy Parameters", 
+		    probHeading: "Probabilities",
+		    probBadLabel: "Bad Year Probability", 
+		    probBasisLabel: "Basis Risk Probability", 
+		    gameBtnText: "Simulate",
+		    seedCost: "Improved package cost", 
+		    yieldBen: "Improved yield benefit", 
+		    cover: "Typical Payout Size", 
+		    loading: "Insurance Loading Fee (%)", 
+		    savings: "Outside Income / Savings",
+		    
+		    dashEvTitle: "Higher Expected Value?",
+		    dashEvLabelModern: "Improved",
+		    dashEvLabelTrad: "Original",
+		    dashSurviveTitle: "Break Even (Bad Year + Insurance)?",
+		    dashSurviveLabel: "Net Position",
+		    
+		    simRoundLabel: "Simulation: Round", 
+		    simTabTitle1: "Package Choice", 
+		    simTabTitle2: "Insurance Choice", 
+		    simTabTitle3: "Basis Risk",
+		    simBtnPlay: "SIMULATE SEASON", 
+		    simBtnBasis: "CHECK BASIS RISK", 
+		    simCounterLabel: "Seasons Simulated:"
+		},
+                base: CONFIG.baseValue, probBad: CONFIG.probBadYear, probBasis: CONFIG.probBasisRisk, gameOpen: false, gameTab: 1, simulationCol: 'none',
+                simCounts: { 1: 0, 2: 0, 3: 0 }, game: { seeds: 'normal', ins: 'no', lastSeason: 'good', lastBasis: false },
+                params: [
+                    { key: 'seedCost', val: CONFIG.improvedPackageCost, min: 0, max: 0.4, step: 0.01 },
+                    { key: 'yieldBen', val: CONFIG.yieldBenefit, min: 1, max: 2, step: 0.1 },
+                    { key: 'cover', val: CONFIG.insuranceCoverage, min: 0.1, max: 1, step: 0.01 },
+                    { key: 'loading', val: CONFIG.insuranceLoading, min: 0, max: 1, step: 0.01 },
+                    { key: 'savings', val: CONFIG.savingsValue, min: 0, max: 1, step: 0.01 }
+                ],
+                getVal(key) { const p = this.params.find(x => x.key === key); return p ? p.val * this.base : 0; },
+                get p() { return { seedCost: this.getVal('seedCost'), yieldBen: this.getVal('yieldBen'), cover: this.getVal('cover'), loading: this.params.find(x => x.key === 'loading').val, savings: this.getVal('savings') }; },
+                get premium() { 
+                    const purePremium = this.getVal('cover') * this.probBad;
+                    return purePremium * (1 + this.p.loading); 
+                },
+                get evTrad() { return (1 - this.probBad) * (this.base + this.getVal('savings')) + (this.probBad * this.getVal('savings')); },
+                get evModern() {
+                    const v = this.p; const prem = this.premium;
+                    const good = v.yieldBen - v.seedCost - prem + v.savings;
+                    const badIns = 0 - v.seedCost - prem + v.cover + v.savings;
+                    const badBasis = 0 - v.seedCost - prem + v.savings;
+                    return (1 - this.probBad) * good + (this.probBad * (1 - this.probBasis)) * badIns + (this.probBad * this.probBasis) * badBasis;
+                },
+                get survivalNet() { return 0 - this.p.seedCost - this.premium + this.p.cover + this.p.savings; },
+                summaryData() {
+                    const v = this.p; const prem = this.premium;
+                    return [
+                        { name: "Original, No Insurance", ev: this.evTrad, good: this.base + v.savings, bad: v.savings },
+                        { name: "Original, Insurance", ev: (1 - this.probBad) * (this.base - prem + v.savings) + (this.probBad * (1 - this.probBasis)) * (0 - prem + v.cover + v.savings) + (this.probBad * this.probBasis) * (0 - prem + v.savings), good: this.base - prem + v.savings, bad: 0 - prem + v.cover + v.savings },
+                        { name: "Improved Package, No Insurance", ev: (1-this.probBad)*(v.yieldBen - v.seedCost + v.savings) + this.probBad*(v.savings - v.seedCost), good: v.yieldBen - v.seedCost + v.savings, bad: v.savings - v.seedCost },
+                        { name: "Improved Package, Insurance", ev: this.evModern, good: v.yieldBen - v.seedCost - prem + v.savings, bad: this.survivalNet }
+                    ];
+                },
+                businessModels() {
+                    const v = this.p; const prem = this.premium;
+                    const configs = [
+                        { title: "Original Package", prod: this.base, seed: 0, ins: 0 },
+                        { title: "Improved Package", prod: v.yieldBen, seed: v.seedCost, ins: 0 },
+                        { title: "Original + Insurance", prod: this.base, seed: 0, ins: prem },
+                        { title: "Improved + Insurance", prod: v.yieldBen, seed: v.seedCost, ins: prem }
+                    ];
+                    return configs.map(c => {
+                        const payout = c.ins > 0 ? v.cover : 0;
+                        return {
+                            title: c.title,
+                            rows: [
+                                { item: "Revenue", good: `${this.ui.currency}${c.prod.toFixed(1)}`, bad: `${this.ui.currency}0.0`, basis: `${this.ui.currency}0.0` },
+                                { item: "Package Cost", good: `${this.ui.currency}${(-c.seed).toFixed(1)}`, bad: `${this.ui.currency}${(-c.seed).toFixed(1)}`, basis: `${this.ui.currency}${(-c.seed).toFixed(1)}` },
+                                { item: "Ins. Cost", good: `${this.ui.currency}${(-c.ins).toFixed(1)}`, bad: `${this.ui.currency}${(-c.ins).toFixed(1)}`, basis: `${this.ui.currency}${(-c.ins).toFixed(1)}` },
+                                { item: "Payout", good: `${this.ui.currency}0.0`, bad: `${this.ui.currency}${payout.toFixed(1)}`, basis: `${this.ui.currency}0.0` },
+                                { item: "Outside Inc", good: `${this.ui.currency}${v.savings.toFixed(1)}`, bad: `${this.ui.currency}${v.savings.toFixed(1)}`, basis: `${this.ui.currency}${v.savings.toFixed(1)}` },
+                                { item: "NET", good: `${this.ui.currency}${(parseFloat(c.prod) - c.seed - c.ins + v.savings).toFixed(1)}`, bad: `${this.ui.currency}${(0 - c.seed - c.ins + payout + v.savings).toFixed(1)}`, basis: c.ins > 0 ? `${this.ui.currency}${(0 - c.seed - c.ins + v.savings).toFixed(1)}` : null }
+                            ]
+                        }
+                    });
+                },
+                openGameModal() { this.gameOpen = true; },
+                resetRound() { this.simulationCol = 'none'; },
+                playSeason() {
+                    this.simCounts[this.gameTab]++;
+                    this.game.lastSeason = Math.random() < this.probBad ? 'bad' : 'good';
+                    this.simulationCol = (this.game.lastSeason === 'good') ? 'good' : 'bad';
+                },
+                playBasis() {
+                    if (this.gameTab < 3 || this.game.lastSeason !== 'bad') return;
+                    this.simulationCol = (Math.random() < this.probBasis) ? 'basis' : 'bad';
+                },
+                getActiveGameModel() {
+                    const v = this.p;
+                    const prem = (this.gameTab >= 2 && this.game.ins === 'yes') ? this.premium : 0;
+                    const prod = (this.game.seeds === 'normal') ? this.base : v.yieldBen;
+                    const seed = (this.game.seeds === 'normal') ? 0 : v.seedCost;
+                    const payout = (prem > 0) ? v.cover : 0;
+                    const cur = this.ui.currency;
+                    return {
+                        rows: [
+                            { item: "Revenue", good: `${cur}${prod.toFixed(1)}`, bad: `${cur}0.0`, basis: `${cur}0.0` },
+                            { item: "Package Cost", good: `${cur}${(-seed).toFixed(1)}`, bad: `${cur}${(-seed).toFixed(1)}`, basis: `${cur}${(-seed).toFixed(1)}` },
+                            { item: "Ins. Cost", good: `${cur}${(-prem).toFixed(1)}`, bad: `${cur}${(-prem).toFixed(1)}`, basis: `${cur}${(-prem).toFixed(1)}` },
+                            { item: "Payout", good: `${cur}0.0`, bad: `${cur}${payout.toFixed(1)}`, basis: `${cur}0.0` },
+                            { item: "Outside Inc", good: `${cur}${v.savings.toFixed(1)}`, bad: `${cur}${v.savings.toFixed(1)}`, basis: `${cur}${v.savings.toFixed(1)}` },
+                            { item: "NET", good: `${cur}${(prod - seed - prem + v.savings).toFixed(1)}`, bad: `${cur}${(0 - seed - prem + payout + v.savings).toFixed(1)}`, basis: (prem > 0) ? `${cur}${(0 - seed - prem + v.savings).toFixed(1)}` : null }
+                        ]
+                    };
+                }
+            }
+        }
+    </script>
+</body>
+</html>
