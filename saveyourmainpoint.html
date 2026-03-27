@@ -61,7 +61,10 @@
                                 <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold" 
                                       x-text="pItem.key === 'loading' ? `${(pItem.val * 100).toFixed(0)}%` : `${ui.currency}${(pItem.val * base).toFixed(1)}` "></span>
                             </div>
-                            <input type="range" :min="pItem.min" :max="pItem.max" :step="pItem.step" x-model.number="pItem.val" class="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex items-center gap-3">
+                                <input type="range" :min="pItem.min" :max="pItem.max" :step="pItem.step" x-model.number="pItem.val" class="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <span class="text-[10px] font-mono font-bold text-slate-400 w-8 text-right" x-text="pItem.val.toFixed(2)"></span>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -313,7 +316,6 @@
                     return { rows: this.buildRows(prod, seed, prem, v.savings, payout) };
                 },
                 saveHtml() {
-                    // 1. Capture current data
                     const currentConfig = {
                         baseValue: this.base,
                         improvedPackageCost: this.params.find(p => p.key === 'seedCost').val,
@@ -324,45 +326,26 @@
                         probBadYear: this.probBad,
                         probBasisRisk: this.probBasis
                     };
-
-                    // 2. Get the entire source code of the current page as a string
                     let htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-
-                    // 3. Create the replacement strings
                     const newConfigStr = `const CONFIG = ${JSON.stringify(currentConfig)};`;
                     const newUiStr = `ui: ${JSON.stringify(this.ui, null, 20)},`;
-
-                    // 4. Use Regex to find and replace the CONFIG and UI objects in the script
-                    // This targets the hardcoded defaults in the script tag
                     htmlContent = htmlContent.replace(/const CONFIG = \{.*?\};/, newConfigStr);
-                    
-                    // This targets the ui: { ... } block specifically
                     htmlContent = htmlContent.replace(/ui: \{[\s\S]*?\},\s+base:/, `${newUiStr}\n                base:`);
-
-                    // 5. Clean up Alpine's "live" artifacts so the new file starts fresh
-                    // Remove classes like 'active-cell' or inline styles added by Alpine
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(htmlContent, 'text/html');
-                    
-                    // Remove any generated elements from x-for loops to prevent "ghosting"
                     doc.querySelectorAll('[x-for]').forEach(template => {
                         let sibling = template.nextElementSibling;
-                        while (sibling && !sibling.hasAttribute('x-for')) {
+                        while (sibling && !sibling.hasAttribute('x-for') && !sibling.hasAttribute('x-data')) {
                             let toRemove = sibling;
                             sibling = sibling.nextElementSibling;
                             toRemove.remove();
                         }
                     });
-
-                    // 6. Download the cleaned-up string
                     const blob = new Blob([doc.documentElement.outerHTML], { type: 'text/html' });
                     const a = document.createElement('a');
-                    const fileName = this.ui.mainTitle.toLowerCase().replace(/\s+/g, '_') + '_model.html';
-                    
                     a.href = URL.createObjectURL(blob);
-                    a.download = fileName;
+                    a.download = this.ui.mainTitle.toLowerCase().replace(/\s+/g, '_') + '.html';
                     a.click();
-                    URL.revokeObjectURL(a.href);
                 }
             }
         }
